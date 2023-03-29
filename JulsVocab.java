@@ -24,54 +24,6 @@ import java.sql.*;
  * @author Jul
  */
 
-class Sense
-{
-    String[] raw_glosses;
-    String[] tags;
-}
-
-class Form
-{
-    String form;
-    String[] tags;
-    Form(String form, String[] tags)
-    {
-        this.form = form;
-        this.tags = tags;
-    }
-}
-
-class Word
-{
-    Form formOf;
-    String word;
-    String pos;
-    String etymology_text;
-    Sense[] senses;
-    Form[] forms;
-    // mock constructor
-    Word(String word, Form formOf, String pos)
-    {
-        this.word = word;
-        this.formOf = formOf;
-        this.pos = pos;
-        this.etymology_text = null;
-        this.senses = null;
-        this.forms = null;
-    }
-}
-
-class QueueElement
-{
-    String json;
-    String language;
-    QueueElement(String json, String language)
-    {
-        this.json = json;
-        this.language = language;
-    }
-}
-
 public class JulsVocab extends JFrame
 {
     JTextField progressField;
