@@ -1,4 +1,6 @@
 # JulsVocab
+*Requires Google gson and Jsoup to work*
+
 Very much a work-in-progress. The concept is to use the parsed Wiktionary lists at https://kaikki.org/ to make a dictionary for each language that the user might desire. The current idea is to have three functionalities:
   Free mode.
   Vocabulary.
