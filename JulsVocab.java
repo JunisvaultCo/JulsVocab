@@ -83,7 +83,7 @@ public class JulsVocab extends JFrame
         
         readAvailableLanguages();
         //parsing the list of languages from kaikki
-        Document doc = Jsoup.connect("https://kaikki.org/dictionary/").get();
+      /*  Document doc = Jsoup.connect("https://kaikki.org/dictionary/").get();
         Elements languages = doc.select("li");
         for (Element language : languages)
         {
@@ -98,10 +98,11 @@ public class JulsVocab extends JFrame
             if (name.toString().trim().equals("All languages combined"))
                 continue;
             availableLanguages.add(name.toString());
+            availableLanguages.add(name.toString());
         }
         availableLanguages.sort(String.CASE_INSENSITIVE_ORDER);
         for (String i: availableLanguages)
-            languageSelecter.addItem(i);
+            languageSelecter.addItem(i);*/
     }
     
     void updateWords(int id)

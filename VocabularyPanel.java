@@ -41,23 +41,17 @@ public class VocabularyPanel extends JPanel
                 {
                     Document doc = JTP.getStyledDocument();
                     String find = list.getSelectedItem();
-                    ResultSet rs = original.getWord(find);
+                    LinkedList<String> rs = original.getWord(find);
                     try
                     {
                         doc.remove(0, doc.getLength());
-                        if (rs != null && rs.next())
-                        {
+                        if (rs != null) {
                             doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
-                            String result = new String(original.decodeWord(rs.getString("JSON")));
-                            original.writeInDoc(result, doc, JTP);
-                            while (rs.next())
-                            {
-                                result = new String(original.decodeWord(rs.getString("JSON")));
-                                original.writeInDoc(result, doc, JTP);
-                            }
+                            for (String r : rs)
+                                original.writeInDoc(r, doc, JTP);
+                        } else {
+                            doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
                         }
-                        else
-                            doc.insertString(0, "Couldn't find word\n", original.red);
                     }
                     catch (Exception ex)
                     {
@@ -67,7 +61,7 @@ public class VocabularyPanel extends JPanel
                 }
         );
         //TODO: Category list
-        
+
         JButton backToMenu = new JButton("<< Back to menu");
         backToMenu.addActionListener(
             (e)->
@@ -131,7 +125,7 @@ public class VocabularyPanel extends JPanel
                 searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
             Statement stmt = original.sqlConnection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT * FROM Vocabulary_" + original.languageName +
-                                             " WHERE Word LIKE '" + searchTerm + "%';");
+                    " WHERE Word LIKE '" + searchTerm + "%';");
             while (rs.next())
             {
                 String term = LanguageFrame.decodeWord(rs.getString("Word"));

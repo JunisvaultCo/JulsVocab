@@ -31,17 +31,14 @@ public class LanguageFrame extends JFrame
     SimpleAttributeSet green = new SimpleAttributeSet();
     SimpleAttributeSet black = new SimpleAttributeSet();
     SimpleAttributeSet blue = new SimpleAttributeSet();
-    
+    HashMap<String, LinkedList<String>> map;
+
     void writeInDoc(String json, Document doc, JTextPane JTP)
     {
         try
         {
             Gson gson = new Gson();
             Word w = gson.fromJson(json, Word.class);
-            StyleConstants.setForeground(red, Color.red);
-            StyleConstants.setForeground(green, Color.green);
-            StyleConstants.setForeground(black, Color.black);
-            StyleConstants.setForeground(blue, Color.blue);
             doc.insertString(doc.getLength(), "Part of speech: " + w.pos + "\n\n", black);
             if (w.formOf != null)
             {
@@ -53,24 +50,23 @@ public class LanguageFrame extends JFrame
                 JButton button = new JButton(w.formOf.form);
                 StyleConstants.setComponent(s, button);
                 button.addActionListener(
-                (e)->
-                {
-                    try
-                    {
-                        ResultSet rs = getWord(w.formOf.form);
-                        doc.remove(0, doc.getLength());
-                        while (rs != null && rs.next())
+                        (e)->
                         {
-                            doc.insertString(doc.getLength(), "word: " + w.formOf.form + "\n", black);
-                            String result = new String(decodeWord(rs.getString("JSON")));
-                            writeInDoc(result, doc, JTP);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ex.printStackTrace();
-                    }
-                });
+                            try
+                            {
+                                LinkedList<String> rs = getWord(w.formOf.form);
+                                doc.remove(0, doc.getLength());
+                                for (String r: rs)
+                                {
+                                    doc.insertString(doc.getLength(), "word: " + w.formOf.form + "\n", black);
+                                    writeInDoc(r, doc, JTP);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                ex.printStackTrace();
+                            }
+                        });
                 doc.insertString(doc.getLength(), " ", JTP.getStyle("button"));
                 doc.insertString(doc.getLength(), "\n", black);
             }
@@ -112,44 +108,55 @@ public class LanguageFrame extends JFrame
         Base64.Encoder EN = Base64.getEncoder();
         return EN.encodeToString(word.toLowerCase().getBytes());
     }
-    
+
     static String decodeWord(String word)
     {
         Base64.Decoder DE = Base64.getDecoder();
         return new String(DE.decode(word.getBytes()));
     }
-    
-    ResultSet getWord(String word)
+
+    LinkedList<String> getWord(String word)
     {
         try
         {
-            String s = encodeWord(word);
-            s = "SELECT * FROM " + languageName + " WHERE Word='" + s + "';";
-            Statement stmt = sqlConnection.createStatement();
-            ResultSet rs = stmt.executeQuery(s);
-            return rs;
+            if (!map.containsKey(word))
+            {
+                String s = encodeWord(word);
+                s = "SELECT * FROM " + languageName + " WHERE Word='" + s + "';";
+                Statement stmt = sqlConnection.createStatement();
+                ResultSet rs = stmt.executeQuery(s);
+                LinkedList<String> list = new LinkedList();
+                while (rs.next())
+                    list.add(decodeWord(rs.getString("JSON")));
+                if (list.isEmpty())
+                    return null;
+                map.put(word, list);
+            }
+            return map.get(word);
         }
         catch (SQLException e)
         {
             return null;
         }
     }
-    
+
     ResultSet getVocabularyWord(String word)
     {
         try
         {
-            ResultSet form = getWord(word);
+            LinkedList<String> form = getWord(word);
+            if (form == null)
+                return null;
             StringBuilder sb = new StringBuilder("SELECT * FROM Vocabulary_");
             sb.append(languageName);
             sb.append(" WHERE Word='");
             sb.append(encodeWord(word));
             sb.append("'");
-            while (form != null && form.next())
+            for (String r: form)
             {
                 Gson gson = new Gson();
                 Base64.Decoder DE = Base64.getDecoder();
-                Word w = gson.fromJson(new String(DE.decode(form.getString("JSON"))), Word.class);
+                Word w = gson.fromJson(r, Word.class);
                 if (w.formOf != null)
                 {
                     Form f = w.formOf;
@@ -168,7 +175,7 @@ public class LanguageFrame extends JFrame
             return null;
         }
     }
-    
+
     void resizeButtons()
     {
         testsButton.setMinimumSize(new Dimension(getWidth(), 30));
@@ -181,14 +188,14 @@ public class LanguageFrame extends JFrame
         vocabButton.setMaximumSize(new Dimension(getWidth(), 30));
         transButton.setMaximumSize(new Dimension(getWidth(), 30));
     }
-    
+
     LanguageFrame(String languageName, java.sql.Connection sqlConnection)
     {
         super(languageName);
         this.languageName = languageName;
         this.sqlConnection = sqlConnection;
         cl = new CardLayout();
-        
+
         //main menu
         JPanel mainMenu = new JPanel();
         mainMenu.setLayout(new BoxLayout(mainMenu, BoxLayout.Y_AXIS));
@@ -198,12 +205,12 @@ public class LanguageFrame extends JFrame
         mainMenu.add(testsButton);
         mainMenu.add(vocabButton);
         mainMenu.add(transButton);
-        
+
         getContentPane().setLayout(cl);
         getContentPane().add("mainMenu", mainMenu);
-        
+
         //TODO: Tests
-        
+
         VocabularyPanel VP = new VocabularyPanel(this);
         getContentPane().add("Vocabulary", VP);
         vocabButton.addActionListener(
@@ -221,7 +228,7 @@ public class LanguageFrame extends JFrame
                     cl.show(getContentPane(), "Quick translate");
                 }
         );
-        
+
         mainMenu.addComponentListener(new ComponentAdapter()
         {
             public void componentShown(ComponentEvent evt)
@@ -233,11 +240,19 @@ public class LanguageFrame extends JFrame
                 resizeButtons();
             }
         });
+
+        map = new HashMap();
+
         cl.show(getContentPane(), "mainMenu");
         setMinimumSize(new Dimension(500, 500));
         setResizable(false);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         pack();
         setLocationRelativeTo(null);
+
+        StyleConstants.setForeground(red, Color.red);
+        StyleConstants.setForeground(green, Color.green);
+        StyleConstants.setForeground(black, Color.black);
+        StyleConstants.setForeground(blue, Color.blue);
     }
 }

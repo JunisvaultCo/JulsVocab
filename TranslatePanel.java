@@ -61,7 +61,7 @@ public class TranslatePanel extends JPanel implements CaretListener
         );
         lowPanel.add(addToVocab, BorderLayout.EAST);
         add(lowPanel, BorderLayout.SOUTH);
-        
+
         JPanel upPanel = new JPanel();
         userPane = new JTextPane();
         userPane.addCaretListener(this);
@@ -73,7 +73,7 @@ public class TranslatePanel extends JPanel implements CaretListener
         upPanel.add(JSP1);
         upPanel.add(JSP2);
         add(upPanel, BorderLayout.CENTER);
-        
+
         addComponentListener(new ComponentAdapter()
         {
             public void componentResized(ComponentEvent evt)
@@ -94,7 +94,6 @@ public class TranslatePanel extends JPanel implements CaretListener
         if (updatingText) return;
         if (CE.getDot() != CE.getMark()) return;
         updatingText = true;
-        int oldCaret = CE.getDot();
         Document doc = userPane.getDocument();
         SwingUtilities.invokeLater(
             ()->
@@ -104,7 +103,7 @@ public class TranslatePanel extends JPanel implements CaretListener
                     String text = doc.getText(0, doc.getLength());
                     java.sql.Connection sqlConnection = original.sqlConnection;
                     Statement stmt = sqlConnection.createStatement();
-                    String language = original.languageName;
+                    int oldCaret = CE.getDot();
                     doc.remove(0, doc.getLength());
                     StringBuilder currentString = new StringBuilder();
                     boolean lastDelim = true;
@@ -121,11 +120,11 @@ public class TranslatePanel extends JPanel implements CaretListener
                             {
                                 if (currentString.length() != 0)
                                 {
-                                    ResultSet rs = original.getWord(currentString.toString());
+                                    LinkedList<String> rs = original.getWord(currentString.toString());
                                     ResultSet rs2 = original.getVocabularyWord(currentString.toString());
                                     if (rs2 != null && rs2.next())
                                         doc.insertString(doc.getLength(), currentString.toString(), original.green);
-                                    else if (rs != null && rs.next())
+                                    else if (rs != null)
                                         doc.insertString(doc.getLength(), currentString.toString(), original.blue);
                                     else
                                         doc.insertString(doc.getLength(), currentString.toString(), original.red);
@@ -153,6 +152,7 @@ public class TranslatePanel extends JPanel implements CaretListener
                     }
                     userPane.setCaretPosition(oldCaret);
                     updatingText = false;
+                    updateDefinition(oldCaret);
                 }
                 catch (Exception e)
                 {
@@ -162,9 +162,8 @@ public class TranslatePanel extends JPanel implements CaretListener
                     e.printStackTrace();
                 }
             });
-        updateDefinition(oldCaret);
     }
-    
+
     void updateDefinition(int position)
     {
         Document doc1 = userPane.getDocument();
@@ -190,21 +189,15 @@ public class TranslatePanel extends JPanel implements CaretListener
             }
             if (smallest == -1) return;
             String find = text.substring(biggest, smallest).toLowerCase().trim();
-            ResultSet rs = original.getWord(find);
+            LinkedList<String> rs = original.getWord(find);
             doc2.remove(0, doc2.getLength());
-            if (rs != null && rs.next())
-            {
+            if (rs != null) {
                 doc2.insertString(doc2.getLength(), "word: " + find + "\n", original.black);
-                String result = new String(original.decodeWord(rs.getString("JSON")));
-                original.writeInDoc(result, doc2, definitionPane);
-                while (rs.next())
-                {
-                    result = new String(original.decodeWord(rs.getString("JSON")));
-                    original.writeInDoc(result, doc2, definitionPane);
-                }
+                for (String r : rs)
+                    original.writeInDoc(r, doc2, definitionPane);
+            } else {
+                doc2.insertString(0, "Couldn't find word: " + find + "\n", original.red);
             }
-            else
-                doc2.insertString(0, "Couldn't find word\n", original.red);
         }
         catch (Exception e)
         {
@@ -235,16 +228,16 @@ public class TranslatePanel extends JPanel implements CaretListener
                 String[] words = doc.getText(0, doc.getLength()).split(delimRegex);
                 for (String word : words)
                 {
-                    ResultSet rs = original.getWord(word);
+                    LinkedList<String> rs = original.getWord(word);
                     boolean ok = false;
                     ArrayList<String> formsOf = new ArrayList<>();
-                    while (rs != null && rs.next())
+                    for (String r: rs)
                     {
                         ok = true;
                         Gson gson = new Gson();
-                        Word w = gson.fromJson(original.decodeWord(rs.getString("JSON")), Word.class);
+                        Word w = gson.fromJson(r, Word.class);
                         if (w.formOf != null)
-                            formsOf.add(w.formOf.form); 
+                            formsOf.add(w.formOf.form);
                     }
                     if (!ok) continue;
                     if (formsOf.isEmpty())
