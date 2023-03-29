@@ -26,12 +26,14 @@ public class LanguageFrame extends JFrame
     JButton testsButton;
     JButton vocabButton;
     JButton transButton;
-    ArrayList<String> words;
     SimpleAttributeSet red = new SimpleAttributeSet();
     SimpleAttributeSet green = new SimpleAttributeSet();
     SimpleAttributeSet black = new SimpleAttributeSet();
     SimpleAttributeSet blue = new SimpleAttributeSet();
     HashMap<String, LinkedList<String>> map;
+    HashMap<String, Boolean> isInVocab = new HashMap<>();
+    // how many entries will be shown before cutting off
+    static final int MAX_ENTRIES_BEFORE_CUTOFF = 100;
 
     void writeInDoc(String json, Document doc, JTextPane JTP)
     {
@@ -60,6 +62,10 @@ public class LanguageFrame extends JFrame
                                 {
                                     doc.insertString(doc.getLength(), "word: " + w.formOf.form + "\n", black);
                                     writeInDoc(r, doc, JTP);
+                                }
+                                if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                                    doc.insertString(doc.getLength(),"The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                                            " and was therefore cut off.oyo\n", red);
                                 }
                             }
                             catch (Exception ex)
@@ -126,8 +132,13 @@ public class LanguageFrame extends JFrame
                 Statement stmt = sqlConnection.createStatement();
                 ResultSet rs = stmt.executeQuery(s);
                 LinkedList<String> list = new LinkedList();
-                while (rs.next())
+                int entryCount = 1;
+                while (rs.next()) {
                     list.add(decodeWord(rs.getString("JSON")));
+                    entryCount++;
+                    if (entryCount > MAX_ENTRIES_BEFORE_CUTOFF)
+                        break;
+                }
                 if (list.isEmpty())
                     return null;
                 map.put(word, list);
@@ -140,40 +151,41 @@ public class LanguageFrame extends JFrame
         }
     }
 
-    ResultSet getVocabularyWord(String word)
+    boolean getVocabularyWord(String word)
     {
-        try
-        {
+        try {
             LinkedList<String> form = getWord(word);
             if (form == null)
-                return null;
-            StringBuilder sb = new StringBuilder("SELECT * FROM Vocabulary_");
-            sb.append(languageName);
-            sb.append(" WHERE Word='");
-            sb.append(encodeWord(word));
-            sb.append("'");
-            for (String r: form)
-            {
-                Gson gson = new Gson();
-                Base64.Decoder DE = Base64.getDecoder();
-                Word w = gson.fromJson(r, Word.class);
-                if (w.formOf != null)
-                {
-                    Form f = w.formOf;
-                    sb.append(" OR Word='");
-                    sb.append(encodeWord(f.form));
-                    sb.append("'");
+                return false;
+            // caching
+            if (!isInVocab.containsKey(word)) {
+                StringBuilder sb = new StringBuilder("SELECT * FROM Vocabulary_");
+                sb.append(languageName);
+                sb.append(" WHERE Word='");
+                sb.append(encodeWord(word));
+                sb.append("'");
+                for (String r : form) {
+                    Gson gson = new Gson();
+                    Base64.Decoder DE = Base64.getDecoder();
+                    Word w = gson.fromJson(r, Word.class);
+                    if (w.formOf != null) {
+                        Form f = w.formOf;
+                        sb.append(" OR Word='");
+                        sb.append(encodeWord(f.form));
+                        sb.append("'");
+                    }
                 }
+                sb.append(";");
+                Statement stmt = sqlConnection.createStatement();
+                ResultSet rs = stmt.executeQuery(sb.toString());
+                isInVocab.put(word, rs != null && rs.next());
             }
-            sb.append(";");
-            Statement stmt = sqlConnection.createStatement();
-            ResultSet rs = stmt.executeQuery(sb.toString());
-            return rs;
         }
         catch (SQLException e)
         {
-            return null;
+            return false;
         }
+        return isInVocab.getOrDefault(word,false);
     }
 
     void resizeButtons()

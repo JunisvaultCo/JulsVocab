@@ -49,6 +49,10 @@ public class VocabularyPanel extends JPanel
                             doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
                             for (String r : rs)
                                 original.writeInDoc(r, doc, JTP);
+                            if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                                doc.insertString(doc.getLength(),"The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                                        " and was therefore cut off.\n", original.red);
+                            }
                         } else {
                             doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
                         }

@@ -121,8 +121,8 @@ public class TranslatePanel extends JPanel implements CaretListener
                                 if (currentString.length() != 0)
                                 {
                                     LinkedList<String> rs = original.getWord(currentString.toString());
-                                    ResultSet rs2 = original.getVocabularyWord(currentString.toString());
-                                    if (rs2 != null && rs2.next())
+                                    boolean isInVocab = original.getVocabularyWord(currentString.toString());
+                                    if (isInVocab)
                                         doc.insertString(doc.getLength(), currentString.toString(), original.green);
                                     else if (rs != null)
                                         doc.insertString(doc.getLength(), currentString.toString(), original.blue);
@@ -195,6 +195,10 @@ public class TranslatePanel extends JPanel implements CaretListener
                 doc2.insertString(doc2.getLength(), "word: " + find + "\n", original.black);
                 for (String r : rs)
                     original.writeInDoc(r, doc2, definitionPane);
+                if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                    doc2.insertString(doc2.getLength(),"The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                            " and was therefore cut off.\n", original.red);
+                }
             } else {
                 doc2.insertString(0, "Couldn't find word: " + find + "\n", original.red);
             }
