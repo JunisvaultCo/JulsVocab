@@ -77,32 +77,36 @@ public class JulsVocab extends JFrame
     //example Old Norse/index.html we're interested in Old Norse
     void initialiseLanguages() throws Exception
     {
-        languageButtons = new ArrayList<>();
-        availableLanguages = new ArrayList<>();
-        savedLanguagesStrings = new ArrayList<>();
-        
-        readAvailableLanguages();
-        //parsing the list of languages from kaikki
-      /*  Document doc = Jsoup.connect("https://kaikki.org/dictionary/").get();
-        Elements languages = doc.select("li");
-        for (Element language : languages)
-        {
-            StringBuilder name = new StringBuilder();
-            if (language.getElementsByTag("a") == null
-             || language.getElementsByTag("a").first() == null
-             || language.getElementsByTag("a").first().attr("href") == null)
-                continue;
-            name.append(language.getElementsByTag("a").first().attr("href").split("/")[0]);
-            if (name.toString().trim().equals(".."))
-                continue;
-            if (name.toString().trim().equals("All languages combined"))
-                continue;
-            availableLanguages.add(name.toString());
-            availableLanguages.add(name.toString());
+        try {
+            languageButtons = new ArrayList<>();
+            availableLanguages = new ArrayList<>();
+            savedLanguagesStrings = new ArrayList<>();
+
+            readAvailableLanguages();
+            //parsing the list of languages from kaikki
+            Document doc = Jsoup.connect("https://kaikki.org/dictionary/").get();
+            Elements languages = doc.select("li");
+            for (Element language : languages) {
+                StringBuilder name = new StringBuilder();
+                if (language.getElementsByTag("a") == null
+                        || language.getElementsByTag("a").first() == null
+                        || language.getElementsByTag("a").first().attr("href") == null)
+                    continue;
+                name.append(language.getElementsByTag("a").first().attr("href").split("/")[0]);
+                if (name.toString().trim().equals(".."))
+                    continue;
+                if (name.toString().trim().equals("All languages combined"))
+                    continue;
+                availableLanguages.add(name.toString());
+                availableLanguages.add(name.toString());
+            }
+            availableLanguages.sort(String.CASE_INSENSITIVE_ORDER);
+            for (String i : availableLanguages)
+                languageSelecter.addItem(i);
+        } catch (UnknownHostException e) {
+            progressField.setText("Couldn't open internet connection to kaikki.org");
         }
-        availableLanguages.sort(String.CASE_INSENSITIVE_ORDER);
-        for (String i: availableLanguages)
-            languageSelecter.addItem(i);*/
+
     }
     
     void updateWords(int id)
