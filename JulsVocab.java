@@ -104,7 +104,7 @@ public class JulsVocab extends JFrame
             for (String i : availableLanguages)
                 languageSelecter.addItem(i);
         } catch (UnknownHostException e) {
-            progressField.setText("Couldn't open internet connection to kaikki.org");
+            progressField.setText("Couldn't open internet connection to kaikki.org to fetch language lists");
         }
 
     }

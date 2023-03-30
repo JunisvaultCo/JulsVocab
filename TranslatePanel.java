@@ -232,18 +232,22 @@ public class TranslatePanel extends JPanel implements CaretListener
                 String[] words = doc.getText(0, doc.getLength()).split(delimRegex);
                 for (String word : words)
                 {
+                    if (original.isInVocab.getOrDefault(word, false))
+                        continue;
                     LinkedList<String> rs = original.getWord(word);
                     boolean ok = false;
                     ArrayList<String> formsOf = new ArrayList<>();
-                    for (String r: rs)
-                    {
-                        ok = true;
-                        Gson gson = new Gson();
-                        Word w = gson.fromJson(r, Word.class);
-                        if (w.formOf != null)
-                            formsOf.add(w.formOf.form);
+                    if (rs != null) {
+                        for (String r : rs) {
+                            ok = true;
+                            Gson gson = new Gson();
+                            Word w = gson.fromJson(r, Word.class);
+                            if (w.formOf != null)
+                                formsOf.add(w.formOf.form);
+                        }
                     }
                     if (!ok) continue;
+                    original.isInVocab.put(word, true);
                     if (formsOf.isEmpty())
                         formsOf.add(word);
                     for (String form : formsOf)
