@@ -24,8 +24,8 @@ public class TranslatePanel extends JPanel implements CaretListener
     JTextPane userPane;
     LanguageFrame original;
     boolean updatingText = false;
-    final String delims = " ,.;!?/()[]{}\n'\"-";
-    final String delimRegex = "[ ,.;!?\\/()\\[\\]{}\n'\"-]+";
+    final String delims = " ,.:;!?/()[]{}\n'\"-";
+    final String delimRegex = "[ ,.:;!?\\/()\\[\\]{}\n'\"-]+";
     TranslatePanel(LanguageFrame original)
     {
         super();
@@ -87,6 +87,59 @@ public class TranslatePanel extends JPanel implements CaretListener
                 JSP2.setSize(new Dimension(src.getWidth() / 3, src.getHeight()));
             }
         });
+        AbstractAction withStressSearchF = new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                JTextComponent origin = (JTextComponent) e.getSource();
+                String find = origin.getSelectedText();
+                Document doc = definitionPane.getDocument();
+                LinkedList<String> rs = original.getWord(find);
+                try {
+                    doc.remove(0, doc.getLength());
+                    if (rs != null) {
+                        doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
+                        for (String r : rs)
+                            original.writeInDoc(r, doc, definitionPane);
+                        if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                            doc.insertString(doc.getLength(), "The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                                    " and was therefore cut off.\n", original.red);
+                        }
+                    } else {
+                        doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
+                    }
+                } catch (BadLocationException ex) {ex.printStackTrace();};
+            }
+        };
+        AbstractAction withoutStressSearchF = new AbstractAction() {
+            public void actionPerformed(ActionEvent e) {
+                JTextComponent origin = (JTextComponent) e.getSource();
+                String find = origin.getSelectedText().toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", "");
+                Document doc = definitionPane.getDocument();
+                LinkedList<String> rs = original.getWord(find);
+                try {
+                    doc.remove(0, doc.getLength());
+                    if (rs != null) {
+                        doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
+                        for (String r : rs)
+                            original.writeInDoc(r, doc, definitionPane);
+                        if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                            doc.insertString(doc.getLength(), "The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                                    " and was therefore cut off.\n", original.red);
+                        }
+                    } else {
+                        doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
+                    }
+                } catch (BadLocationException ex) {ex.printStackTrace();};
+            }
+        };
+        definitionPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK), "with_stress_search");
+        definitionPane.getActionMap().put("with_stress_search", withStressSearchF);
+        definitionPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_W, java.awt.event.InputEvent.CTRL_DOWN_MASK), "without_stress_search");
+        definitionPane.getActionMap().put("without_stress_search", withoutStressSearchF);
+
+        userPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK), "with_stress_search");
+        userPane.getActionMap().put("with_stress_search", withStressSearchF);
+        userPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_W, java.awt.event.InputEvent.CTRL_DOWN_MASK), "without_stress_search");
+        userPane.getActionMap().put("without_stress_search", withoutStressSearchF);
     }
     @Override
     public void caretUpdate(CaretEvent CE)
@@ -250,19 +303,15 @@ public class TranslatePanel extends JPanel implements CaretListener
                     original.isInVocab.put(word, true);
                     if (formsOf.isEmpty())
                         formsOf.add(word);
+                    StringBuilder sb = new StringBuilder("INSERT INTO " + s + " VALUES ");
                     for (String form : formsOf)
-                    {
-                        try
-                        {
-                            Statement stmt = original.sqlConnection.createStatement();
-                            String B64 = LanguageFrame.encodeWord(form);
-                            stmt.executeUpdate("INSERT INTO " + s + " VALUES ('" + B64 + "');");
-                        }
-                        catch (SQLException e)
-                        {
-                            //just ignore it
-                        }
-                    }
+                        sb.append("(?),");
+                    sb.deleteCharAt(sb.length() - 1);
+                    sb.append(";");
+                    PreparedStatement preparedStatement = original.sqlConnection.prepareStatement(sb.toString());
+                    for (int i = 0; i < formsOf.size(); i++)
+                        preparedStatement.setString(i + 1, formsOf.get(i).toLowerCase(Locale.ROOT));
+                    preparedStatement.executeUpdate();
                 }
             }
             catch (BadLocationException e)

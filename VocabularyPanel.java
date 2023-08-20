@@ -120,22 +120,13 @@ public class VocabularyPanel extends JPanel
         {
             ArrayList<String> strings = new ArrayList<>();
             String text = JTF.getText();
-            String searchTerm = LanguageFrame.encodeWord(text);
-            while (searchTerm.endsWith("="))
-                searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-            if (searchTerm.length() > 0)
-                searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-            if (searchTerm.length() > 0)
-                searchTerm = searchTerm.substring(0, searchTerm.length() - 1);
-            Statement stmt = original.sqlConnection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM Vocabulary_" + original.languageName +
-                    " WHERE Word LIKE '" + searchTerm + "%';");
+            String searchTerm = text.toLowerCase(Locale.ROOT) + "%";
+            PreparedStatement stmt = original.sqlConnection.prepareStatement("SELECT * FROM Vocabulary_" + original.languageName +
+                    " WHERE Word LIKE ?;");
+            stmt.setString(1, searchTerm);
+            ResultSet rs = stmt.executeQuery();
             while (rs.next())
-            {
-                String term = LanguageFrame.decodeWord(rs.getString("Word"));
-                if (term.startsWith(text))
-                    strings.add(LanguageFrame.decodeWord(rs.getString("Word")));
-            }
+                strings.add(rs.getString("Word"));
             strings.sort(String.CASE_INSENSITIVE_ORDER);
             for (String s: strings)
                 list.add(s);

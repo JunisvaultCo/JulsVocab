@@ -98,7 +98,6 @@ public class JulsVocab extends JFrame
                 if (name.toString().trim().equals("All languages combined"))
                     continue;
                 availableLanguages.add(name.toString());
-                availableLanguages.add(name.toString());
             }
             availableLanguages.sort(String.CASE_INSENSITIVE_ORDER);
             for (String i : availableLanguages)
@@ -134,10 +133,11 @@ public class JulsVocab extends JFrame
                 QueueElement qe = threadQueues[id].poll();
                 String line = qe.json;
                 String s = qe.language;
-                Base64.Encoder B64E = Base64.getEncoder();
                 Gson gson = new Gson();
                 Word a = gson.fromJson(line, Word.class);
-                String name = B64E.encodeToString(a.word.toLowerCase().getBytes());
+                String name = a.word.toLowerCase();
+                ArrayList<String> words = new ArrayList<>();
+                ArrayList<String> jsons = new ArrayList<>();
                 
                 StringBuilder commands = new StringBuilder();
                 commands.append("INSERT INTO ");
@@ -151,23 +151,22 @@ public class JulsVocab extends JFrame
                             continue;
                         Form f2 = new Form(a.word, f.tags);
                         Word w = new Word(f.form, f2, a.pos);
-                        String jsonLine = gson.toJson(w);
-                        String encodedLine = B64E.encodeToString(jsonLine.getBytes());
-                        String name2 = B64E.encodeToString(f.form.toLowerCase().getBytes());
-                        commands.append("('");
-                        commands.append(name2);
-                        commands.append("', '");
-                        commands.append(encodedLine);
-                        commands.append("'),");
+                        jsons.add(gson.toJson(w));
+                        // in the case of some languages the combining diacritical marks are used to imply stress and aren't
+                        // used in normal writing
+                        words.add(f.form.toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", ""));
+                        commands.append("(?, ?),");
                     }
                 }
-                String encodedLine = B64E.encodeToString(line.getBytes());
-                commands.append("('");
-                commands.append(name);
-                commands.append("', '");
-                commands.append(encodedLine);
-                commands.append("');");
-                stmt.executeUpdate(commands.toString());
+                commands.append("(?, ?);");
+                words.add(name);
+                jsons.add(gson.toJson(a));
+                PreparedStatement preparedStatement = sqlConnection.prepareStatement(commands.toString());
+                for (int i = 0; i < words.size(); i++) {
+                    preparedStatement.setString(i * 2 + 1, words.get(i));
+                    preparedStatement.setString(i * 2 + 2, jsons.get(i));
+                }
+                preparedStatement.executeUpdate();
                 currentDownloaded++;
                 if (!downloading && currentDownloaded != totalDownloads)
                     progressField.setText("Updated forms " + currentDownloaded + " / " + totalDownloads);

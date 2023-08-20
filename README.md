@@ -22,3 +22,5 @@ Test mode: A mode where the user can take random words from the vocabulary and t
 
 Currently, only Vocabulary and Free Mode are implemented (and are quite buggy).
 This app uses SQLite for quick searches through the myriad of words.
+
+USE CTRL + S (maintains Combining Diacritical Marks) and CTRL + W (doesn't) to search selected phrases.

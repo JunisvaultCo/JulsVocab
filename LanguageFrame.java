@@ -106,20 +106,6 @@ public class LanguageFrame extends JFrame
             e.printStackTrace();
         }
     }
-    //just thinking that in the future I might have to change the encoding / decoding
-    //and this would ease my pain between the switches. Plus, it's an annoying
-    //section of steps to follow
-    static String encodeWord(String word)
-    {
-        Base64.Encoder EN = Base64.getEncoder();
-        return EN.encodeToString(word.toLowerCase().getBytes());
-    }
-
-    static String decodeWord(String word)
-    {
-        Base64.Decoder DE = Base64.getDecoder();
-        return new String(DE.decode(word.getBytes()));
-    }
 
     LinkedList<String> getWord(String word)
     {
@@ -127,14 +113,14 @@ public class LanguageFrame extends JFrame
         {
             if (!map.containsKey(word))
             {
-                String s = encodeWord(word);
-                s = "SELECT * FROM " + languageName + " WHERE Word='" + s + "';";
-                Statement stmt = sqlConnection.createStatement();
-                ResultSet rs = stmt.executeQuery(s);
+                String s = word.toLowerCase(Locale.ROOT);
+                PreparedStatement stmt = sqlConnection.prepareStatement("SELECT * FROM " + languageName + " WHERE Word=?;");
+                stmt.setString(1, s);
+                ResultSet rs = stmt.executeQuery();
                 LinkedList<String> list = new LinkedList();
                 int entryCount = 1;
                 while (rs.next()) {
-                    list.add(decodeWord(rs.getString("JSON")));
+                    list.add(rs.getString("JSON"));
                     entryCount++;
                     if (entryCount > MAX_ENTRIES_BEFORE_CUTOFF)
                         break;
@@ -161,23 +147,28 @@ public class LanguageFrame extends JFrame
             if (!isInVocab.containsKey(word)) {
                 StringBuilder sb = new StringBuilder("SELECT * FROM Vocabulary_");
                 sb.append(languageName);
-                sb.append(" WHERE Word='");
-                sb.append(encodeWord(word));
-                sb.append("'");
+                sb.append(" WHERE Word=?");
                 for (String r : form) {
                     Gson gson = new Gson();
-                    Base64.Decoder DE = Base64.getDecoder();
                     Word w = gson.fromJson(r, Word.class);
                     if (w.formOf != null) {
-                        Form f = w.formOf;
-                        sb.append(" OR Word='");
-                        sb.append(encodeWord(f.form));
-                        sb.append("'");
+                        sb.append(" OR Word=?");
                     }
                 }
                 sb.append(";");
-                Statement stmt = sqlConnection.createStatement();
-                ResultSet rs = stmt.executeQuery(sb.toString());
+                PreparedStatement stmt = sqlConnection.prepareStatement(sb.toString());
+                stmt.setString(1, word.toLowerCase(Locale.ROOT));
+                int count = 2;
+                for (String r: form) {
+                    Gson gson = new Gson();
+                    Word w = gson.fromJson(r, Word.class);
+                    if (w.formOf != null) {
+                        Form f = w.formOf;
+                        stmt.setString(count, f.form.toLowerCase(Locale.ROOT));
+                        count++;
+                    }
+                }
+                ResultSet rs = stmt.executeQuery();
                 isInVocab.put(word, rs != null && rs.next());
             }
         }
