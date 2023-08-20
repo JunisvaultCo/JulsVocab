@@ -7,6 +7,8 @@ package julsvocab;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import javax.swing.text.*;
 
@@ -36,12 +38,14 @@ public class LanguageFrame extends JFrame
     static final int MAX_ENTRIES_BEFORE_CUTOFF = 100;
 
     String currentWord;
-    ArrayList<String> currentForms;
+    ArrayList<String> currentForms = new ArrayList<>();
+    StringBuilder definitions = new StringBuilder();
 
     void writeInDocAll(String find, Document doc, JTextPane JTP) throws BadLocationException
     {
         currentWord = find;
         currentForms = new ArrayList<>();
+        definitions = new StringBuilder();
         LinkedList<String> rs = getWord(find);
         doc.remove(0, doc.getLength());
         if (rs != null) {
@@ -61,6 +65,35 @@ public class LanguageFrame extends JFrame
     {
         try
         {
+            Style def = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
+            Style button_style = JTP.addStyle("button", def);
+            StyleConstants.setAlignment(button_style, StyleConstants.ALIGN_CENTER);
+            if (currentForms.size() == 0)
+            {
+                JButton nameCopy = new JButton("Copy word!");
+                StyleConstants.setComponent(button_style, nameCopy);
+                nameCopy.addActionListener(
+                        (e) -> {
+                            StringSelection selection = new StringSelection(currentWord);
+                            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                            clipboard.setContents(selection, selection);
+                        }
+                );
+                doc.insertString(doc.getLength(), " ", JTP.getStyle("button"));
+                doc.insertString(doc.getLength(), "\n", black);
+                JButton definitionsCopy = new JButton("Copy definitions!");
+                StyleConstants.setComponent(button_style, definitionsCopy);
+                definitionsCopy.addActionListener(
+                        (e) -> {
+                            StringSelection selection = new StringSelection(definitions.toString());
+                            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                            clipboard.setContents(selection, selection);
+                        }
+                );
+                doc.insertString(doc.getLength(), " ", JTP.getStyle("button"));
+                doc.insertString(doc.getLength(), "\n", black);
+            }
+
             Gson gson = new Gson();
             Word w = gson.fromJson(json, Word.class);
             doc.insertString(doc.getLength(), "Part of speech: " + w.pos + "\n\n", black);
@@ -69,11 +102,8 @@ public class LanguageFrame extends JFrame
                 currentForms.add(w.formOf.form);
                 for (String tag: w.formOf.tags)
                     doc.insertString(doc.getLength(), tag + " ", blue);
-                Style def = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
-                Style s = JTP.addStyle("button", def);
-                StyleConstants.setAlignment(s, StyleConstants.ALIGN_CENTER);
                 JButton button = new JButton(w.formOf.form);
-                StyleConstants.setComponent(s, button);
+                StyleConstants.setComponent(button_style, button);
                 button.addActionListener(
                         (e)->
                         {
@@ -106,8 +136,11 @@ public class LanguageFrame extends JFrame
                 doc.insertString(doc.getLength(), "Raw glosses:\n", black);
                 for (Sense s: w.senses)
                     if (s.raw_glosses != null)
-                        for (String gloss: s.raw_glosses)
+                        for (String gloss: s.raw_glosses) {
                             doc.insertString(doc.getLength(), gloss + "\n", black);
+                            definitions.append(gloss);
+                            definitions.append("\n");
+                        }
                 doc.insertString(doc.getLength(), "\n", black);
             }
             if (w.forms != null)
