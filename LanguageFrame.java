@@ -35,6 +35,28 @@ public class LanguageFrame extends JFrame
     // how many entries will be shown before cutting off
     static final int MAX_ENTRIES_BEFORE_CUTOFF = 100;
 
+    String currentWord;
+    ArrayList<String> currentForms;
+
+    void writeInDocAll(String find, Document doc, JTextPane JTP) throws BadLocationException
+    {
+        currentWord = find;
+        currentForms = new ArrayList<>();
+        LinkedList<String> rs = getWord(find);
+        doc.remove(0, doc.getLength());
+        if (rs != null) {
+            doc.insertString(doc.getLength(), "word: " + find + "\n", black);
+            for (String r : rs)
+                writeInDoc(r, doc, JTP);
+            if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
+                doc.insertString(doc.getLength(),"The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
+                        " and was therefore cut off.\n", red);
+            }
+        } else {
+            doc.insertString(0, "Couldn't find word: " + find + "\n", red);
+        }
+    }
+
     void writeInDoc(String json, Document doc, JTextPane JTP)
     {
         try
@@ -44,6 +66,7 @@ public class LanguageFrame extends JFrame
             doc.insertString(doc.getLength(), "Part of speech: " + w.pos + "\n\n", black);
             if (w.formOf != null)
             {
+                currentForms.add(w.formOf.form);
                 for (String tag: w.formOf.tags)
                     doc.insertString(doc.getLength(), tag + " ", blue);
                 Style def = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);

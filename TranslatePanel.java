@@ -92,20 +92,8 @@ public class TranslatePanel extends JPanel implements CaretListener
                 JTextComponent origin = (JTextComponent) e.getSource();
                 String find = origin.getSelectedText();
                 Document doc = definitionPane.getDocument();
-                LinkedList<String> rs = original.getWord(find);
                 try {
-                    doc.remove(0, doc.getLength());
-                    if (rs != null) {
-                        doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
-                        for (String r : rs)
-                            original.writeInDoc(r, doc, definitionPane);
-                        if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
-                            doc.insertString(doc.getLength(), "The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
-                                    " and was therefore cut off.\n", original.red);
-                        }
-                    } else {
-                        doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
-                    }
+                    original.writeInDocAll(find, doc, definitionPane);
                 } catch (BadLocationException ex) {ex.printStackTrace();};
             }
         };
@@ -114,20 +102,8 @@ public class TranslatePanel extends JPanel implements CaretListener
                 JTextComponent origin = (JTextComponent) e.getSource();
                 String find = origin.getSelectedText().toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", "");
                 Document doc = definitionPane.getDocument();
-                LinkedList<String> rs = original.getWord(find);
                 try {
-                    doc.remove(0, doc.getLength());
-                    if (rs != null) {
-                        doc.insertString(doc.getLength(), "word: " + find + "\n", original.black);
-                        for (String r : rs)
-                            original.writeInDoc(r, doc, definitionPane);
-                        if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
-                            doc.insertString(doc.getLength(), "The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
-                                    " and was therefore cut off.\n", original.red);
-                        }
-                    } else {
-                        doc.insertString(0, "Couldn't find word: " + find + "\n", original.red);
-                    }
+                    original.writeInDocAll(find, doc, definitionPane);
                 } catch (BadLocationException ex) {ex.printStackTrace();};
             }
         };
@@ -140,6 +116,17 @@ public class TranslatePanel extends JPanel implements CaretListener
         userPane.getActionMap().put("with_stress_search", withStressSearchF);
         userPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_W, java.awt.event.InputEvent.CTRL_DOWN_MASK), "without_stress_search");
         userPane.getActionMap().put("without_stress_search", withoutStressSearchF);
+        userPane.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_1, InputEvent.CTRL_DOWN_MASK), "get_first_definition");
+        userPane.getActionMap().put("get_first_definition", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String find = original.currentForms.get(0).toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", "");
+                Document doc = definitionPane.getDocument();
+                try {
+                    original.writeInDocAll(find, doc, definitionPane);
+                } catch (BadLocationException ex) {ex.printStackTrace();}
+            }
+        });
     }
     @Override
     public void caretUpdate(CaretEvent CE)
@@ -242,19 +229,7 @@ public class TranslatePanel extends JPanel implements CaretListener
             }
             if (smallest == -1) return;
             String find = text.substring(biggest, smallest).toLowerCase().trim();
-            LinkedList<String> rs = original.getWord(find);
-            doc2.remove(0, doc2.getLength());
-            if (rs != null) {
-                doc2.insertString(doc2.getLength(), "word: " + find + "\n", original.black);
-                for (String r : rs)
-                    original.writeInDoc(r, doc2, definitionPane);
-                if (rs.size() == LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF) {
-                    doc2.insertString(doc2.getLength(),"The amount of entries is over " + LanguageFrame.MAX_ENTRIES_BEFORE_CUTOFF +
-                            " and was therefore cut off.\n", original.red);
-                }
-            } else {
-                doc2.insertString(0, "Couldn't find word: " + find + "\n", original.red);
-            }
+            original.writeInDocAll(find, doc2, definitionPane);
         }
         catch (Exception e)
         {
