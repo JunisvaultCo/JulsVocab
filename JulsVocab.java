@@ -147,15 +147,18 @@ public class JulsVocab extends JFrame
                 {
                     for (Form f: a.forms)
                     {
-                        if (f.tags[0].equals("canonical") || f.tags[0].equals("word-tags") || f.form.trim().equals("-"))
+                        if ((f.tags != null && f.tags[0] != null && (f.tags[0].equals("canonical") || f.tags[0].equals("word-tags")))
+                                || (f.form != null && f.form.trim().equals("-")))
                             continue;
                         Form f2 = new Form(a.word, f.tags);
                         Word w = new Word(f.form, f2, a.pos);
-                        jsons.add(gson.toJson(w));
                         // in the case of some languages the combining diacritical marks are used to imply stress and aren't
                         // used in normal writing
-                        words.add(f.form.toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", ""));
-                        commands.append("(?, ?),");
+                        if (f.form != null) {
+                            words.add(f.form.toLowerCase(Locale.ROOT).replaceAll("\\p{InCombiningDiacriticalMarks}", ""));
+                            commands.append("(?, ?),");
+                            jsons.add(gson.toJson(w));
+                        }
                     }
                 }
                 commands.append("(?, ?);");
